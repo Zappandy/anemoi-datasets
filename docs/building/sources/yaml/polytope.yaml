@@ -1,0 +1,13 @@
+input:
+  polytope:
+    collection: destination-earth
+    address: polytope.lumi.apps.dte.destination-earth.eu
+    request:
+      class: d1
+      dataset: on-demand-extremes-dt
+      expver: "0099"
+      stream: oper
+      type: fc
+      levtype: sfc
+      georef: u4usq2
+      param: [ 167 ]

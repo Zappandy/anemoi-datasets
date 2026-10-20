@@ -36,6 +36,7 @@ The following `sources` are currently available:
    sources/netcdf
    sources/opendap
    sources/planetary-computer
+   sources/polytope
    sources/recentre
    sources/repeated-dates
    sources/xarray-based
