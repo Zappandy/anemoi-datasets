@@ -101,6 +101,29 @@ def _recipe(output: dict) -> Recipe:
     return Recipe(input={"empty": {}}, dates={"values": []}, output=output)
 
 
+def test_unknown_output_key_is_warned_about(caplog):
+    with caplog.at_level(logging.WARNING):
+        output = _recipe({"layout": "gridded", "dtypes": "float64"}).output
+
+    assert "'output.dtypes' is not an option" in caplog.text
+    assert output.dtype == "float32"
+
+
+def test_zarr_format_key_points_to_format(caplog):
+    with caplog.at_level(logging.WARNING):
+        output = _recipe({"zarr_format": 3}).output
+
+    assert "use 'output.format: zarr2' or 'output.format: zarr3'" in caplog.text
+    assert output.format == "zarr2"
+
+
+def test_known_output_keys_do_not_warn(caplog):
+    with caplog.at_level(logging.WARNING):
+        _recipe({"layout": "gridded", "dtype": "float64", "chunking": {"dates": 1}, "format": "zarr2"})
+
+    assert "is not an option" not in caplog.text
+
+
 def test_layout_selects_output():
     output = _recipe({"layout": "tabular"}).output
     assert isinstance(output, TabularOutput)
