@@ -94,3 +94,37 @@ def test_open_zarr_missing_store(tmp_path: Path) -> None:
 
     with pytest.raises(ZarrFileNotFoundError, match=re.escape(path)):
         open_zarr(path)
+
+
+@pytest.fixture
+def format_3_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> str:
+    """A directory with a ``zarr.json``, opened as zarr-python 2 does a store it cannot read: nothing is found."""
+    path = tmp_path / "format3.zarr"
+    path.mkdir()
+    (path / "zarr.json").write_text("{}")
+
+    def not_found(store, mode, **kwargs):
+        raise ZarrFileNotFoundError(str(store))
+
+    monkeypatch.setattr(store_module, "zarr_open", not_found)
+    return str(path)
+
+
+def test_open_zarr_format_3_store_with_zarr_2(format_3_store: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(store_module, "zarr_version", 2)
+
+    with pytest.raises(ValueError, match=r"Zarr format 3.*zarr-python>=3"):
+        open_zarr(format_3_store)
+
+
+def test_open_zarr_format_3_store_with_zarr_3(format_3_store: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(store_module, "zarr_version", 3)
+
+    with pytest.raises(ZarrFileNotFoundError):
+        open_zarr(format_3_store)
+
+
+def test_open_zarr_format_3_store_dont_fail(format_3_store: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(store_module, "zarr_version", 2)
+
+    assert open_zarr(format_3_store, dont_fail=True) is None
