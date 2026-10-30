@@ -104,6 +104,10 @@ def open_zarr(path: str, dont_fail: bool = False, cache: int = None) -> zarr.Gro
         return zarr_open(store, "r")
     except ZarrFileNotFoundError as e:
         if not dont_fail:
+            if zarr_version < 3 and os.path.isfile(os.path.join(path, "zarr.json")):
+                raise ValueError(
+                    f"{path} is a Zarr format 3 dataset, which needs zarr-python>=3 (zarr {zarr.__version__} is installed)."
+                ) from e
             raise ZarrFileNotFoundError(path) from e
 
 
