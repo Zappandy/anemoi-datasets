@@ -24,14 +24,13 @@ license = { file = "LICENSE" }
 authors = [
   { name = "European Centre for Medium-Range Weather Forecasts (ECMWF)", email = "software.support@ecmwf.int" },
 ]
-requires-python = ">=3.11,<3.14"
+requires-python = ">=3.12,<3.14"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: Implementation :: CPython",
@@ -47,7 +46,7 @@ dependencies = [
   "glom",
   "jsonschema",
   "lru-dict",
-  "numcodecs<0.16",           # Until we move to zarr3
+  "numcodecs>=0.16.6,!=0.17", # 0.16 passes the Blosc typesize in zarr 3, 0.17.0 is excluded by zarr 3.4.2
   "numpy",
   "pint",
   "psutil",
@@ -58,7 +57,7 @@ dependencies = [
   "ruamel-yaml>=0.16",
   "semantic-version",
   "tqdm",
-  "zarr<=2.18.7",
+  "zarr>=3.4.1,<4",
 ]
 optional-dependencies.all = [
   "anemoi-datasets[comparelam,create,remote,xarray]",
