@@ -7,6 +7,7 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
+import gc
 import json
 import logging
 import os
@@ -227,6 +228,7 @@ class Creator(ABC):
         total = dataset.total_todo()
         filter = PartFilter(parts=self.parts, total=total)
 
+        result = None  # initialise so del is safe on the first processed group
         for i, group in enumerate(self.groups):
             if not filter(i):
                 continue
@@ -236,6 +238,15 @@ class Creator(ABC):
                 LOG.info(f" -> Skipping {i} total={total} (already done)")
                 continue
 
+            # Release the previous group's FieldList and its full reference chain
+            # (xarray Datasets -> zarr stores -> decoded chunk buffers) before
+            # select() builds the next group. Without this, Python keeps group N
+            # alive while group N+1 accumulates -- peak RSS is the sum of both.
+            del result
+            # CPython's reference counter handles most cleanup via del, but
+            # gc.collect() is needed to break any reference cycles in FieldList
+            # or context objects that the counter cannot reach automatically.
+            gc.collect()
             result = self.input.select(self.context(), argument=group)
 
             # There are several groups. There is one result to load for each group.
