@@ -104,6 +104,25 @@ def load_one(
     if isinstance(dataset, str) and dataset.endswith(".zarr"):
         # If the dataset is a zarr store, we need to use the zarr engine
         options["engine"] = "zarr"
+        # Optional in-process chunk cache: avoids redundant NFS reads when a store's
+        # chunks span multiple levels (e.g. ARCO PL chunks (1,13,721,1440) are read
+        # once per level per timestep without a cache, totalling 13x the data moved).
+        # Set cache_mb in the source options to enable; uses zarr's experimental
+        # CacheStore backed by an in-memory MemoryStore with LRU eviction.
+        cache_mb = options.pop("cache_mb", None)
+        if cache_mb is not None:
+            import zarr as _zarr
+            from zarr.experimental.cache_store import CacheStore
+            from zarr.storage import MemoryStore
+
+            _raw = _zarr.open_group(dataset, mode="r")
+            dataset = CacheStore(
+                _raw.store,
+                cache_store=MemoryStore(),
+                max_size=int(cache_mb) * 1024 * 1024,
+            )
+            # xarray receives the CacheStore; zarr.open_group will re-open it
+            # internally, routing all chunk reads through the LRU cache.
 
     if isinstance(dataset, xr.Dataset):
         data = dataset
