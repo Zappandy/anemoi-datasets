@@ -42,9 +42,40 @@ from anemoi.datasets.usage.options import Options
 LOG = logging.getLogger(__name__)
 
 
+def icechunk_url_to_store(url: str) -> Any:
+    """Open a read-only zarr store from an Icechunk repository on a local file system.
+
+    The URL is ``icechunk:///absolute/path/to/repo`` followed by at most one of ``?branch=NAME``
+    (the default is ``main``), ``?tag=NAME`` or ``?snapshot=ID``. A tag or snapshot pins the dataset
+    to one immutable version of the repository.
+    """
+    from urllib.parse import parse_qs
+
+    try:
+        import icechunk
+    except ImportError as e:
+        raise ImportError(f"Opening {url} needs the 'icechunk' package (pip install icechunk, zarr>=3)") from e
+
+    parsed = urlparse(url)
+    if parsed.netloc:
+        raise ValueError(f"Unsupported Icechunk URL {url}: use icechunk:///absolute/path (local repositories only)")
+
+    query = parse_qs(parsed.query)
+    unknown = set(query) - {"branch", "tag", "snapshot"}
+    if unknown or len(query) > 1 or any(len(v) != 1 for v in query.values()):
+        raise ValueError(f"Unsupported Icechunk URL {url}: use at most one of ?branch=, ?tag= or ?snapshot=")
+
+    selector = {"snapshot_id" if k == "snapshot" else k: v[0] for k, v in query.items()} or {"branch": "main"}
+    repo = icechunk.Repository.open(icechunk.local_filesystem_storage(parsed.path))
+    return repo.readonly_session(**selector).store
+
+
 def name_to_zarr_store(path_or_url: str) -> Any:
     """Convert a path or URL to a zarr store."""
     store = path_or_url
+
+    if store.startswith("icechunk://"):
+        return icechunk_url_to_store(store)
 
     if store.startswith("s3://"):
         return S3Store(store)
