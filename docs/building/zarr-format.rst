@@ -111,6 +111,21 @@ Other codecs, or several codecs, are rejected when the recipe is read.
 A package providing a codec must be installed wherever the dataset is
 created or read.
 
+In reads of 40 dates of synthetic O96 and N320 data
+on one cluster, Blosc lz4 was faster than zstd in every chunk
+layout tested: the read time with zstd was 1.3 to 2.0 times that with
+Blosc lz4, and the zstd store was larger (7.6 GB against 6.0 GB for N320).
+The values read were identical. These numbers come from synthetic fields,
+so the sizes will differ for real data.
+
+Two points about ``output.chunking`` when changing the layout:
+
+- A ``chunking`` given in the recipe replaces the default. A ``chunking``
+  with only ``values`` drops ``dates: 1``, and one chunk then spans all
+  the dates. Give ``dates: 1`` and ``ensembles: 1`` as well.
+- Blosc cannot compress a chunk of more than 2 GiB. Use a smaller chunk,
+  or a codec without this limit, such as zstd.
+
 When a copy rewrites the data, the ``data`` array of the target keeps the
 compressor of the source. Blosc, Zstd and Gzip are translated to the
 codecs of the Zarr format of the target, including the compressor of the
