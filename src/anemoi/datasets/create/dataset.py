@@ -187,10 +187,15 @@ class Dataset:
     def initialise_done_flags(self, groups: int) -> None:
         """Initialize the progress tracking datasets."""
 
+        # chunks=(1,): one zarr chunk per flag so concurrent mark_done() calls from
+        # different SLURM tasks always write different chunk files — no NFS race.
+        # Without this, zarr defaults to a single chunk for the whole array; concurrent
+        # read-modify-writes on that chunk via NFS flock() are unreliable across nodes.
         self.add_array(
             name="_build/flags",
             data=np.array([False] * groups, dtype=bool),
             dimensions=("group",),
+            chunks=(1,),
         )
 
     def remove_group(self, name: str) -> None:
