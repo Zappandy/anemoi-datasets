@@ -60,6 +60,22 @@ class OutputBase(BaseModel):
             raise ValueError("'output.format: \"zarr3\"' requires zarr-python>=3")
         return format
 
+    @model_validator(mode="before")
+    @classmethod
+    def _warn_about_unknown_keys(cls, data: Any) -> Any:
+        """Warn about keys that are not options of the output, which pydantic would drop silently."""
+        if not isinstance(data, dict):
+            return data
+        for key in sorted(set(data) - set(cls.model_fields)):
+            if key == "zarr_format":
+                LOG.warning(
+                    "'output.zarr_format' is not an option and is ignored; "
+                    "use 'output.format: zarr2' or 'output.format: zarr3'."
+                )
+            else:
+                LOG.warning("'output.%s' is not an option and is ignored.", key)
+        return data
+
 
 class CodecSpec(BaseModel):
     """A codec as in Zarr format 3 array metadata."""
